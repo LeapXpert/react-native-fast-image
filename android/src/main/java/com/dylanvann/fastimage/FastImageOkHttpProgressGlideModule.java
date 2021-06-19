@@ -11,6 +11,7 @@ import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.module.LibraryGlideModule;
 import com.facebook.react.modules.network.OkHttpClientProvider;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;

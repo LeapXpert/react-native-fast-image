@@ -5,10 +5,15 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.PorterDuff;
 import android.os.Build;
+import android.util.Log;
+import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.model.Headers;
+import com.dylanvann.fastimage.bb.BBDataFetcher;
+import com.dylanvann.fastimage.bb.BBModel;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
@@ -17,9 +22,23 @@ import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.good.gd.apache.http.Header;
+import com.good.gd.apache.http.HttpResponse;
+import com.good.gd.apache.http.client.methods.HttpGet;
+import com.good.gd.file.File;
+import com.good.gd.file.FileInputStream;
+import com.good.gd.file.FileOutputStream;
+import com.good.gd.file.GDFileSystem;
+import com.good.gd.net.GDHttpClient;
+import com.leap.blackberry_utils.BackgroundService;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -29,6 +48,7 @@ import javax.annotation.Nullable;
 import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_ERROR_EVENT;
 import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_LOAD_END_EVENT;
 import static com.dylanvann.fastimage.FastImageRequestListener.REACT_ON_LOAD_EVENT;
+import static com.good.gd.file.GDFileSystem.MODE_PRIVATE;
 
 class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> implements FastImageProgressListener {
 
@@ -36,6 +56,8 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
     private static final String REACT_ON_LOAD_START_EVENT = "onFastImageLoadStart";
     private static final String REACT_ON_PROGRESS_EVENT = "onFastImageProgress";
     private static final Map<String, List<FastImageViewWithUrl>> VIEWS_FOR_URLS = new WeakHashMap<>();
+    static String TAG = "FAST_IMAGE";
+    Context context;
 
     @Nullable
     private RequestManager requestManager = null;
@@ -47,6 +69,7 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
 
     @Override
     protected FastImageViewWithUrl createViewInstance(ThemedReactContext reactContext) {
+        this.context = reactContext;
         if (isValidContextForGlide(reactContext)) {
             requestManager = Glide.with(reactContext);
         }
@@ -54,8 +77,28 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         return new FastImageViewWithUrl(reactContext);
     }
 
+    public String md5(@Nullable String s) {
+        try {
+            // Create MD5 Hash
+            MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            digest.update(s.getBytes());
+            byte[] messageDigest = digest.digest();
+
+            // Create Hex String
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : messageDigest) {
+                hexString.append(Integer.toHexString(0xFF & b));
+            }
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return s;
+    }
+
     @ReactProp(name = "source")
-    public void setSrc(FastImageViewWithUrl view, @Nullable ReadableMap source) {
+    public void setSrc(final FastImageViewWithUrl view, @Nullable final ReadableMap source) {
         if (source == null || !source.hasKey("uri") || isNullOrEmpty(source.getString("uri"))) {
             // Cancel existing requests.
             if (requestManager != null) {
@@ -69,8 +112,24 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
             view.setImageDrawable(null);
             return;
         }
-
-        //final GlideUrl glideUrl = FastImageViewConverter.getGlideUrl(view.getContext(), source);
+        final String uri = source.getString("uri");
+//        if (downloadingUrls.contains(uri)) {
+//            Log.e(TAG, "add to listener: " + uri);
+//            listeners.add(new DownloadListener(uri) {
+//                @Override
+//                void onDownloaded() {
+//                    Log.e(TAG, "Something has downloaded");
+//                    final String fileName = md5(uri) + ".png";
+//                    final File file = new File(fileName);
+//                    if (file.exists()) {
+//                        displayImage(requestManager, file, view, uri);
+//                    }
+//                }
+//            });
+//            Log.e(TAG, "listener size: " + listeners.size());
+//            return;
+//        }
+//        downloadingUrls.add(uri);
         final FastImageSource imageSource = FastImageViewConverter.getImageSource(view.getContext(), source);
         final GlideUrl glideUrl = imageSource.getGlideUrl();
 
@@ -90,25 +149,150 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
             VIEWS_FOR_URLS.put(key, newViewsForKeys);
         }
 
-        ThemedReactContext context = (ThemedReactContext) view.getContext();
+        Map<String, String> headers = imageSource.getHeaders().getHeaders();
+
+        final ThemedReactContext context = (ThemedReactContext) view.getContext();
         RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
         int viewId = view.getId();
         eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_START_EVENT, new WritableNativeMap());
 
-        if (requestManager != null) {
+
+        if (uri.startsWith("http")) {
             requestManager
-                    // This will make this work for remote and local images. e.g.
-                    //    - file:///
-                    //    - content://
-                    //    - res:/
-                    //    - android.resource://
-                    //    - data:image/png;base64
-                    .load(imageSource.getSourceForLoad())
-                    .apply(FastImageViewConverter.getOptions(context, imageSource, source))
-                    .listener(new FastImageRequestListener(key))
+                    .load(new BBModel(uri, headers))
+                    .listener(new FastImageRequestListener(uri))
                     .into(view);
+            return;
+        }
+
+        requestManager
+                .load(uri)
+                .listener(new FastImageRequestListener(uri))
+                .into(view);
+//
+//        if (requestManager != null) {
+//            if (uri != null && ((uri.startsWith("/") || uri.startsWith("file://")))) {
+//                requestManager
+//                        .load(new java.io.File(uri.replace("file://", "")))
+//                        .listener(new FastImageRequestListener(uri))
+//                        .into(view);
+//                downloadingUrls.remove(uri);
+//                return;
+//            }
+//            if (uri.startsWith("data:")) {
+//                requestManager
+//                        .load(uri)
+//                        .listener(new FastImageRequestListener(uri))
+//                        .into(view);
+//                downloadingUrls.remove(uri);
+//                return;
+//            }
+//            final String fileName = md5(uri) + ".png";
+//            final File file = new File(fileName);
+//            if (file.exists() && file.length() > 200) {
+//                long length = file.length();
+//                Log.e("File exist length", "" + length);
+//                displayImage(requestManager, file, view, uri);
+//                downloadingUrls.remove(uri);
+//                Iterator<DownloadListener> i = listeners.iterator();
+//                while (i.hasNext()) {
+//                    DownloadListener s = i.next(); // must be called before you can call i.remove()
+//                    // Do something
+//                    s.onDownloaded();
+//                    i.remove();
+//                }
+//                return;
+//            }
+//            BackgroundService.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Log.e(TAG, "start download image" + "==" + uri);
+//                    int viewId = view.getId();
+//                    RCTEventEmitter eventEmitter = context.getJSModule(RCTEventEmitter.class);
+//                    eventEmitter.receiveEvent(viewId, REACT_ON_ERROR_EVENT, new WritableNativeMap());
+//                    eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_END_EVENT, new WritableNativeMap());
+//                    boolean success = downloadFile(source.getString("uri"), imageSource.getHeaders(), fileName);
+//                    Log.e(TAG, "image downloaded" + "==" + uri);
+//                    Log.e(TAG, "listener size" + "==" + listeners.size());
+//
+//                    downloadingUrls.remove(uri);
+//                    if (success) {
+//                        displayImage(requestManager, file, view, uri);
+//                        Iterator<DownloadListener> i = listeners.iterator();
+//                        while (i.hasNext()) {
+//                            DownloadListener s = i.next(); // must be called before you can call i.remove()
+//                            // Do something
+//                            s.onDownloaded();
+//                            i.remove();
+//                        }
+//                    }
+//                }
+//            });
+
+
+//        }
+    }
+
+    static synchronized void displayImage(final RequestManager requestManager, File file, final ImageView view, final String url) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(file);
+            final byte[] bytes = new byte[fileInputStream.available()];
+            fileInputStream.read(bytes);
+            fileInputStream.close();
+            BackgroundService.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    requestManager
+                            .load(bytes)
+                            .listener(new FastImageRequestListener(url))
+                            .into(view);
+                }
+            });
+
+        } catch (IOException e) {
+            file.delete();
+            Log.e("FAST_IMAGE", "image error" + "==" + e.getMessage());
+            Log.e("FAST_IMAGE", "image error url" + "==" + url);
+            e.printStackTrace();
         }
     }
+
+
+    private static final List<DownloadListener> listeners = new ArrayList<>();
+    private static final List<String> downloadingUrls = new ArrayList<>();
+
+    public boolean downloadFile(String url, Headers headers, String fileName) {
+        try {
+            GDHttpClient client = new GDHttpClient();
+            HttpGet get = new HttpGet(url);
+            for (String key : headers.getHeaders().keySet()) {
+                String value = headers.getHeaders().get(key);
+                get.addHeader(key, value);
+            }
+            HttpResponse response = client.execute(get);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode != 200) {
+                Log.e("FastImageViewManager", "Image error: " + statusCode);
+                return false;
+            }
+            InputStream is = response.getEntity().getContent();
+
+
+            FileOutputStream fos = GDFileSystem.openFileOutput(fileName, MODE_PRIVATE);
+            int read = 0;
+            byte[] buffer = new byte[32768];
+            while ((read = is.read(buffer)) > 0) {
+                fos.write(buffer, 0, read);
+            }
+            fos.close();
+            is.close();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 
     @ReactProp(name = "tintColor", customType = "Color")
     public void setTintColor(FastImageViewWithUrl view, @Nullable Integer color) {
@@ -223,4 +407,17 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         }
 
     }
+
+    static class DownloadListener {
+        String url;
+
+        public DownloadListener(String url) {
+            this.url = url;
+        }
+
+        void onDownloaded() {
+        }
+
+    }
+
 }
