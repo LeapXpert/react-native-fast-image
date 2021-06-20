@@ -77,26 +77,6 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         return new FastImageViewWithUrl(reactContext);
     }
 
-    public String md5(@Nullable String s) {
-        try {
-            // Create MD5 Hash
-            MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-            digest.update(s.getBytes());
-            byte[] messageDigest = digest.digest();
-
-            // Create Hex String
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : messageDigest) {
-                hexString.append(Integer.toHexString(0xFF & b));
-            }
-            return hexString.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return s;
-    }
-
     @ReactProp(name = "source")
     public void setSrc(final FastImageViewWithUrl view, @Nullable final ReadableMap source) {
         if (source == null || !source.hasKey("uri") || isNullOrEmpty(source.getString("uri"))) {
@@ -113,23 +93,6 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
             return;
         }
         final String uri = source.getString("uri");
-//        if (downloadingUrls.contains(uri)) {
-//            Log.e(TAG, "add to listener: " + uri);
-//            listeners.add(new DownloadListener(uri) {
-//                @Override
-//                void onDownloaded() {
-//                    Log.e(TAG, "Something has downloaded");
-//                    final String fileName = md5(uri) + ".png";
-//                    final File file = new File(fileName);
-//                    if (file.exists()) {
-//                        displayImage(requestManager, file, view, uri);
-//                    }
-//                }
-//            });
-//            Log.e(TAG, "listener size: " + listeners.size());
-//            return;
-//        }
-//        downloadingUrls.add(uri);
         final FastImageSource imageSource = FastImageViewConverter.getImageSource(view.getContext(), source);
         final GlideUrl glideUrl = imageSource.getGlideUrl();
 

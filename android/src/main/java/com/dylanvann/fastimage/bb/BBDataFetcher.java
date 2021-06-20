@@ -46,20 +46,9 @@ public class BBDataFetcher implements DataFetcher<InputStream> {
             }
             InputStream is = response.getEntity().getContent();
             callback.onDataReady(is);
-//            FileOutputStream fos = GDFileSystem.openFileOutput(fileName, MODE_PRIVATE);
-//            int read = 0;
-//            byte[] buffer = new byte[32768];
-//            while ((read = is.read(buffer)) > 0) {
-//                fos.write(buffer, 0, read);
-//            }
-//            fos.close();
-//            is.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        byte[] data = new byte[10];
-//        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
-//        callback.onDataReady(byteBuffer);
     }
 
     @Override
