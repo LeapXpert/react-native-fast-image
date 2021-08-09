@@ -21,6 +21,7 @@ def _glideVersion = safeExtGet("glideVersion", "4.11.0")
 def _minSdkVersion = safeExtGet("minSdkVersion", 16)
 def _reactNativeVersion = safeExtGet("reactNative", "+")
 def _targetSdkVersion = safeExtGet("targetSdkVersion", 28)
+def _blackberryVersion = safeExtGet("blackberry_version", "8.1.0.37")
 
 android {
     compileSdkVersion _compileSdkVersion
@@ -68,6 +69,6 @@ dependencies {
     implementation project(':blackberry-utils')
     annotationProcessor "com.github.bumptech.glide:compiler:${_glideVersion}"
     implementation("com.github.bumptech.glide:okhttp3-integration:${_glideVersion}")
-    implementation 'com.blackberry.blackberrydynamics:android_handheld_platform:8.1.0.37'
-    implementation 'com.blackberry.blackberrydynamics:android_handheld_backup_support:8.1.0.37'
+    implementation 'com.blackberry.blackberrydynamics:android_handheld_platform:${_blackberryVersion}'
+    implementation 'com.blackberry.blackberrydynamics:android_handheld_backup_support:${_blackberryVersion}'
 }
