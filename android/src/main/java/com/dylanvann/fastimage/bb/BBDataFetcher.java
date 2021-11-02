@@ -42,11 +42,13 @@ public class BBDataFetcher implements DataFetcher<InputStream> {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode != 200) {
                 Log.e("FastImageViewManager", "Image error: " + statusCode);
+                callback.onLoadFailed(new Exception("Server error: " + statusCode));
                 return;
             }
             InputStream is = response.getEntity().getContent();
             callback.onDataReady(is);
         } catch (IOException e) {
+            callback.onLoadFailed(e);
             e.printStackTrace();
         }
     }
