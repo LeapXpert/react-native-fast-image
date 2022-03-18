@@ -79,6 +79,11 @@ export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     opacity?: number
 }
 
+export type ResizeImageAndroid = {
+    width: number
+    height: number
+}
+
 export interface FastImageProps extends AccessibilityProps {
     source: Source | number
     resizeMode?: ResizeMode
@@ -126,6 +131,7 @@ export interface FastImageProps extends AccessibilityProps {
      * Render children within the image.
      */
     children?: React.ReactNode
+    resizeImageAndroid?: ResizeImageAndroid
 }
 
 function FastImageBase({
@@ -142,6 +148,7 @@ function FastImageBase({
     // eslint-disable-next-line no-shadow
     resizeMode = 'cover',
     forwardedRef,
+    resizeImageAndroid,
     ...props
 }: FastImageProps & { forwardedRef: React.Ref<any> }) {
     if (fallback) {
@@ -182,6 +189,7 @@ function FastImageBase({
                 onFastImageError={onError}
                 onFastImageLoadEnd={onLoadEnd}
                 resizeMode={resizeMode}
+                resizeImageAndroid={resizeImageAndroid}
             />
             {children}
         </View>

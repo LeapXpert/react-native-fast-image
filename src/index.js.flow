@@ -17,6 +17,11 @@ export type OnProgressEvent = SyntheticEvent<
     |}>,
 >
 
+export type ImageResizeAndroid = $ReadOnly<{|
+    width: number,
+    height: number,
+|}>
+
 export type ResizeMode = $ReadOnly<{|
     contain: 'contain',
     cover: 'cover',
@@ -61,6 +66,7 @@ export type FastImageProps = $ReadOnly<{|
     resizeMode?: ?ResizeModes,
     fallback?: ?boolean,
     testID?: ?string,
+    imageResizeAndroid?: ?ImageResizeAndroid,
 |}>
 
 declare export default class FastImage extends React$Component<FastImageProps> {

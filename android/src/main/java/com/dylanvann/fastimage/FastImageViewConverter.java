@@ -84,6 +84,18 @@ class FastImageViewConverter {
         return headers;
     }
 
+    static RequestOptions getImageResizeOptions(ReadableMap imageSizeOverride) {
+        if (imageSizeOverride != null) {
+            return new RequestOptions().override(
+                imageSizeOverride.getInt("width"),
+                imageSizeOverride.getInt("height")
+            );
+        }
+
+        // No Image Size Override Required
+        return new RequestOptions();
+    }
+
     static RequestOptions getOptions(Context context, FastImageSource imageSource, ReadableMap source) {
         // Get priority.
         final Priority priority = FastImageViewConverter.getPriority(source);
