@@ -5,7 +5,6 @@ import com.bumptech.glide.load.model.ModelLoaderFactory;
 import com.bumptech.glide.load.model.MultiModelLoaderFactory;
 
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 
 public class BBModelLoaderFactory  implements ModelLoaderFactory<BBModel, InputStream> {
 

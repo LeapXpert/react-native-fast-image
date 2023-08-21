@@ -46,6 +46,15 @@ android {
     lintOptions {
         abortOnError false
     }
+    flavorDimensions 'dim'
+    productFlavors {
+        lw {
+            dimension 'dim'
+        }
+        bb {
+            dimension 'dim'
+        }
+    }
 }
 
 repositories {
@@ -67,5 +76,5 @@ dependencies {
     annotationProcessor 'com.android.support:support-annotations:28.0.0-alpha3'
     annotationProcessor "com.github.bumptech.glide:compiler:${_glideVersion}"
     implementation("com.github.bumptech.glide:okhttp3-integration:${_glideVersion}")
-    implementation "com.blackberry.blackberrydynamics:android_handheld_platform:+"
+    bbImplementation "com.blackberry.blackberrydynamics:android_handheld_platform:+"
 }

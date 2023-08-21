@@ -2,7 +2,6 @@ package com.dylanvann.fastimage.bb;
 
 import androidx.annotation.Nullable;
 
-import com.bumptech.glide.load.Key;
 import com.bumptech.glide.load.Options;
 import com.bumptech.glide.load.model.ModelLoader;
 import com.bumptech.glide.signature.ObjectKey;
@@ -13,7 +12,7 @@ public final class BBImageModelLoader implements ModelLoader<BBModel, InputStrea
 
     @Nullable
     @Override
-    public ModelLoader.LoadData<InputStream> buildLoadData(BBModel model, int width, int height, Options options) {
+    public LoadData<InputStream> buildLoadData(BBModel model, int width, int height, Options options) {
         return new LoadData<>(new ObjectKey(model.url), new BBDataFetcher(model));
     }
 
