@@ -1,9 +1,9 @@
-package com.dylanvann.fastimage;
+package com.dylanvann.fastimage.intune;
 
 import com.bumptech.glide.annotation.GlideModule;
 import com.bumptech.glide.module.AppGlideModule;
 
 // We need an AppGlideModule to be present for progress events to work.
 @GlideModule
-public final class FastImageGlideModule extends AppGlideModule {
+public final class FastImageIntuneGlideModule extends AppGlideModule {
 }
