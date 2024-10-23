@@ -54,6 +54,9 @@ android {
         bb {
             dimension 'dim'
         }
+        intune {
+            dimension 'dim'
+        }
     }
 }
 
