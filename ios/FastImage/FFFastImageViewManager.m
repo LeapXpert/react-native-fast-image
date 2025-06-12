@@ -47,5 +47,5 @@ RCT_EXPORT_METHOD(clearDiskCache:(RCTPromiseResolveBlock)resolve reject:(RCTProm
         resolve(NULL);
     }];
 }
-@end
 
+@end
