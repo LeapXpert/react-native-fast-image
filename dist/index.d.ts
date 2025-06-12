@@ -100,6 +100,8 @@ interface FastImageStaticProperties {
     priority: typeof priority;
     cacheControl: typeof cacheControl;
     preload: (sources: Source[]) => void;
+    clearMemoryCache: () => Promise<void>;
+    clearDiskCache: () => Promise<void>;
 }
 declare const FastImage: React.ComponentType<FastImageProps> & FastImageStaticProperties;
 export default FastImage;
